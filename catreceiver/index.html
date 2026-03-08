@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Language" content="pl">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+    <title>CatCast TV</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <script src="webOSTVjs-1.2.10/webOSTV.js"></script>
+    <script src="assets/js/bouncing-logo.js"></script>
+</head>
+
+<body class="setup-mode">
+    <div class="container">
+        <div class="left-panel">
+            <div class="brand-header">
+                <img src="assets/images/whitecat.png" class="brand-logo-img" alt="CatCast Logo">
+                <h1>CatCast</h1>
+                <p>Receiver</p>
+            </div>
+
+            <div class="input-group">
+                <label>Adres IP komputera</label>
+                <input type="text" id="ip-input" placeholder="192.168.1.XXX" tabindex="1" inputmode="none" readonly>
+            </div>
+
+            <div class="input-group mb-large">
+                <label>Port</label>
+                <input type="number" id="port-input" value="8080" tabindex="2" inputmode="none" readonly>
+            </div>
+
+            <div class="buttons">
+                <button id="connect-btn" class="btn btn-connect" tabindex="3">
+                    <i class="fas fa-plug"></i> POŁĄCZ
+                </button>
+                <button id="disconnect-btn" class="btn btn-disconnect hidden" tabindex="4">
+                    <i class="fas fa-times"></i> ROZŁĄCZ
+                </button>
+            </div>
+
+            <div style="text-align: center;">
+                <div class="status-badge error" id="status-badge">
+                    ROZŁĄCZONY
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+        </div>
+
+
+    </div>
+    </div>
+    </div>
+
+    <div class="video-wrapper" id="video-wrapper">
+        <video id="stream-video" style="width:100% !important; height:100% !important;" autoplay playsinline
+            muted></video>
+        <div class="hud">
+            <div class="hud-item" id="hud-fps">
+                <span class="hud-label">FPS</span>
+                <span class="hud-value">0</span>
+            </div>
+            <div class="hud-item" id="hud-latency">
+                <span class="hud-label">PING</span>
+                <span class="hud-value">0ms</span>
+            </div>
+            <div class="hud-item" id="hud-time">
+                <span class="hud-label">TIME</span>
+                <span class="hud-value">00:00</span>
+            </div>
+            <div class="hud-item" id="hud-res" style="display:none;">
+                <span class="hud-label">RES</span>
+                <span class="hud-value">0x0</span>
+            </div>
+        </div>
+
+        <div id="center-status-overlay" class="hidden"
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(24, 24, 27, 0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; opacity: 0; transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 100; min-width: 140px; min-height: 140px; border: 1px solid rgba(255, 255, 255, 0.1);">
+            <i id="center-icon" class="fas fa-play"
+                style="font-size: 64px; text-shadow: 0 4px 12px rgba(0,0,0,0.5);"></i>
+
+            <div id="center-spinner" class="hidden"
+                style="width: 72px; height: 72px; border: 6px solid rgba(255,255,255,0.1); border-top: 6px solid #6366f1; border-radius: 50%; animation: tvspin 1s linear infinite;">
+            </div>
+        </div>
+        <style>
+            @keyframes tvspin {
+                0% {
+                    transform: rotate(0deg);
+                }
+
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
+    </div>
+
+    <script>
+
+        var CONFIG = {
+            ws: null,
+            connected: false,
+            streaming: false,
+            startTime: null,
+            statsInterval: null,
+            reconnectAttempts: 0,
+            maxReconnectAttempts: 5,
+            autoReconnect: true,
+            reconnectAttempts: 0,
+            maxReconnectAttempts: 5,
+            autoReconnect: true,
+            statsVisible: false,
+            lastDecodedFrames: 0,
+            pingInterval: null,
+            targetFPS: 60,
+            lastVideoTime: 0,
+            lastStatTime: 0
+        };
+
+        var elements = {
+            ipInput: document.getElementById('ip-input'),
+            portInput: document.getElementById('port-input'),
+            connectBtn: document.getElementById('connect-btn'),
+            disconnectBtn: document.getElementById('disconnect-btn'),
+            statusBadge: document.getElementById('status-badge'),
+            waitingScreen: document.getElementById('waiting-screen'),
+            videoWrapper: document.getElementById('video-wrapper'),
+            streamVideo: document.getElementById('stream-video'),
+            hudFps: document.getElementById('hud-fps'),
+            hudLatency: document.getElementById('hud-latency'),
+            hudTime: document.getElementById('hud-time'),
+            hudRes: document.getElementById('hud-res'),
+            displayAddress: document.getElementById('display-address')
+        };
+
+        var focusableElements = [
+            elements.ipInput,
+            elements.portInput,
+            elements.connectBtn,
+            elements.disconnectBtn
+        ];
+
+        var currentFocus = 0;
+
+        function initApp() {
+            setupEventListeners();
+            setupRemoteNavigation();
+            loadSavedIP();
+
+            setTimeout(function () {
+                elements.connectBtn.focus();
+                currentFocus = 2; // index of connectBtn
+            }, 500);
+
+            if (elements.ipInput.value && elements.ipInput.value.length > 5) {
+                setTimeout(connect, 1000);
+            }
+        }
+
+        var centerStatusTimeout = null;
+
+        function showCenterStatus(iconClass, hideAfter, showSpinner) {
+            var overlay = document.getElementById('center-status-overlay');
+            var icon = document.getElementById('center-icon');
+            var spinner = document.getElementById('center-spinner');
+
+            if (!overlay) return;
+
+            if (showSpinner) {
+                icon.classList.add('hidden');
+                spinner.classList.remove('hidden');
+            } else {
+                icon.className = 'fas ' + iconClass;
+                spinner.classList.add('hidden');
+                icon.classList.remove('hidden');
+            }
+
+            overlay.classList.remove('hidden');
+            overlay.style.transform = 'translate(-50%, -50%) scale(0.9)';
+
+            void overlay.offsetWidth;
+
+            overlay.style.opacity = '1';
+            overlay.style.transform = 'translate(-50%, -50%) scale(1)';
+
+            if (centerStatusTimeout) clearTimeout(centerStatusTimeout);
+
+            if (hideAfter > 0) {
+                centerStatusTimeout = setTimeout(function () {
+                    overlay.style.opacity = '0';
+                    overlay.style.transform = 'translate(-50%, -50%) scale(1.1)';
+                    setTimeout(function () { overlay.classList.add('hidden'); }, 300);
+                }, hideAfter);
+            }
+        }
+
+        function setupEventListeners() {
+            elements.connectBtn.addEventListener('click', connect);
+            elements.disconnectBtn.addEventListener('click', disconnect);
+
+            elements.ipInput.addEventListener('keydown', function (e) {
+                if (e.keyCode === 13) connect();
+            });
+            elements.portInput.addEventListener('keydown', function (e) {
+                if (e.keyCode === 13) connect();
+            });
+
+            [elements.ipInput, elements.portInput].forEach(function (input) {
+                input.addEventListener('blur', function () {
+                    this.readOnly = true;
+                });
+
+                input.addEventListener('click', function () {
+                    this.readOnly = false;
+                    this.focus();
+                    if (typeof webOS !== 'undefined' && webOS.keyboard) {
+                        try { webOS.keyboard.show(); } catch (e) { }
+                    }
+                });
+            });
+        }
+
+        function setupRemoteNavigation() {
+            document.addEventListener('keydown', function (e) {
+                if (e.keyCode >= 37 && e.keyCode <= 40) {
+                    if ((document.activeElement === elements.ipInput || document.activeElement === elements.portInput) && (e.keyCode === 37 || e.keyCode === 39)) {
+                        return; // input handle left/right
+                    }
+                    e.preventDefault();
+                    if (e.keyCode === 37 || e.keyCode === 38) { // left/up
+                        currentFocus = (currentFocus - 1 + focusableElements.length) % focusableElements.length;
+                    } else { // right/down
+                        currentFocus = (currentFocus + 1) % focusableElements.length;
+                    }
+                    focusableElements[currentFocus].focus();
+                }
+
+                else if (e.keyCode === 13) {
+                    if (document.activeElement && document.activeElement.click) {
+                        document.activeElement.click();
+                    }
+                }
+
+                else if (e.keyCode === 406 || e.key === 'b') {
+                    toggleFullscreen();
+                }
+
+                else if (e.keyCode === 457 || e.key === 'i' || e.key === 'I') {
+                    e.preventDefault();
+                    toggleStats();
+                }
+
+                else if (e.keyCode === 13 && (document.activeElement === elements.ipInput || document.activeElement === elements.portInput)) {
+
+                    document.activeElement.readOnly = false;
+                    document.activeElement.focus();
+
+                    setTimeout(function () {
+                        if (typeof webOS !== 'undefined' && webOS.keyboard) {
+                            try {
+                                webOS.keyboard.show();
+                            } catch (err) {
+                            }
+                        }
+                    }, 50);
+                }
+            });
+        }
+
+        function loadSavedIP() {
+            var saved = localStorage.getItem('catcast-ip');
+            if (saved) elements.ipInput.value = saved;
+        }
+
+        function connect() {
+            if (CONFIG.connected) return;
+
+            if (CONFIG.ws) {
+                try {
+                    CONFIG.ws.close();
+                } catch (e) {
+                    console.warn('Error closing existing WebSocket:', e);
+                }
+                CONFIG.ws = null;
+            }
+
+            var ip = elements.ipInput.value.trim();
+            var port = elements.portInput.value.trim() || '8080';
+
+            if (!ip) {
+                showToast('Wprowadź adres IP', 'error');
+                return;
+            }
+
+            localStorage.setItem('catcast-ip', ip);
+            updateStatus('ŁĄCZENIE...', false);
+
+            try {
+                var url = 'ws://' + ip + ':' + port;
+                CONFIG.ws = new WebSocket(url);
+
+                CONFIG.ws.onopen = function () {
+                    CONFIG.connected = true;
+                    CONFIG.reconnectAttempts = 0;
+                    updateStatus('POŁĄCZONY', true);
+                    showToast('Połączono z komputerem', 'success');
+
+                    sendMessage({ type: 'hello', device: 'LG TV' });
+                };
+
+                CONFIG.ws.onmessage = function (e) {
+                    handleMessage(e);
+                };
+
+                CONFIG.ws.onclose = function () {
+                    handleDisconnect();
+                };
+
+                CONFIG.ws.onerror = function () {
+                    updateStatus('BŁĄD SIECI', false);
+                    showToast('Błąd połączenia', 'error');
+                };
+
+            } catch (err) {
+                showToast('Błąd: ' + err.message, 'error');
+            }
+        }
+
+        function disconnect() {
+            if (CONFIG.ws) CONFIG.ws.close();
+        }
+
+        function handleDisconnect() {
+            CONFIG.connected = false;
+            CONFIG.streaming = false;
+            updateStatus('ROZŁĄCZONY', false);
+            document.body.classList.remove('streaming-mode');
+
+            if (CONFIG.statsInterval) {
+                clearInterval(CONFIG.statsInterval);
+                CONFIG.statsInterval = null;
+            }
+
+            if (CONFIG.autoReconnect && CONFIG.reconnectAttempts < CONFIG.maxReconnectAttempts) {
+                CONFIG.reconnectAttempts++;
+                setTimeout(connect, 3000);
+            }
+        }
+
+        function handleMessage(event) {
+
+            if (event.data instanceof Blob || event.data instanceof ArrayBuffer) {
+                return;
+            }
+
+            try {
+                var message = JSON.parse(event.data);
+                if (message.type === 'stream_started') {
+                    if (message.config && message.config.fps) {
+                        CONFIG.targetFPS = parseInt(message.config.fps) || 60;
+                    }
+                    var streamUrl = message.url || message.rtspUrl || (message.streamUrls && message.streamUrls.http);
+                    var enableAudio = message.config ? message.config.enableAudio : false;
+                    startStreaming(streamUrl, message.startPaused, enableAudio);
+                } else if (message.type === 'stream_stopped') {
+                    stopStreaming();
+                } else if (message.type === 'pong') {
+                    var rtt = Date.now() - message.timestamp;
+                    elements.hudLatency.querySelector('.hud-value').textContent = rtt + 'ms';
+                } else if (message.type === 'playback_control') {
+                    if (!elements.streamVideo) return;
+
+                    var total = message.total || elements.streamVideo.duration || 0;
+
+                    if (message.action === 'seek') {
+                        if (!isNaN(message.time) && isFinite(message.time)) {
+                            elements.streamVideo.currentTime = message.time;
+                        }
+                    } else if (message.action === 'seek_live') {
+                        showCenterStatus('', 0, true);
+                    } else if (message.action === 'play') {
+                        var playPromise = elements.streamVideo.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(function (e) { console.error('Play Error:', e); });
+                        }
+                        showCenterStatus('fa-play', 800, false);
+                    } else if (message.action === 'pause') {
+                        elements.streamVideo.pause();
+                        showCenterStatus('fa-pause', 0, false);
+                    }
+                }
+            } catch (e) {
+                console.error('Message parse error:', e);
+            }
+        }
+
+        function startStreaming(url, startPaused, enableAudio) {
+            if (!url) {
+                console.warn('Cannot start stream: URL is empty');
+                return;
+            }
+            CONFIG.streaming = true;
+            CONFIG.startTime = Date.now();
+
+            document.body.classList.add('streaming-mode');
+
+            elements.streamVideo.src = url;
+            elements.streamVideo.load(); // load for older browsers
+
+            elements.streamVideo.muted = !enableAudio;
+            elements.streamVideo.volume = 1.0;
+
+            if (startPaused === true) {
+                elements.streamVideo.pause();
+                showCenterStatus('fa-pause', 0, false);
+            } else {
+                var playPromise = elements.streamVideo.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(function () {
+                    }).catch(function (e) {
+                        console.error('Video play() error via Promise:', e);
+                        showToast('Błąd odtwarzania wideo', 'error');
+                    });
+                } else {
+                }
+            }
+
+            elements.streamVideo.onwaiting = function () {
+                if (CONFIG.streaming && elements.streamVideo.paused === false) {
+                    showCenterStatus('', 0, true);
+                }
+            };
+
+            elements.streamVideo.onplaying = function () {
+                if (CONFIG.streaming) {
+                    var overlay = document.getElementById('center-status-overlay');
+                    if (overlay && overlay.style.opacity === '1' && document.getElementById('center-spinner').classList.contains('hidden') === false) {
+                        showCenterStatus('', 10, false); // hide
+                    }
+                }
+            };
+
+            elements.streamVideo.oncanplay = function () {
+                if (CONFIG.streaming && elements.streamVideo.paused) {
+                    var overlay = document.getElementById('center-status-overlay');
+                    if (overlay && overlay.style.opacity === '1' && document.getElementById('center-spinner').classList.contains('hidden') === false) {
+                        showCenterStatus('fa-pause', 0, false);
+                    }
+                }
+            };
+
+            if (!CONFIG.statsInterval) {
+                CONFIG.statsInterval = setInterval(updateStats, 1000);
+            }
+
+            startPingService();
+        }
+
+        function stopStreaming() {
+            CONFIG.streaming = false;
+            document.body.classList.remove('streaming-mode');
+            elements.streamVideo.pause();
+            elements.streamVideo.src = '';
+            elements.streamVideo.pause();
+            elements.streamVideo.src = '';
+            showToast('Transmisja zatrzymana', 'info');
+            stopPingService();
+        }
+
+        function startPingService() {
+            if (CONFIG.pingInterval) clearInterval(CONFIG.pingInterval);
+            CONFIG.pingInterval = setInterval(function () {
+                sendMessage({ type: 'ping', timestamp: Date.now() });
+            }, 2000);
+        }
+
+        function stopPingService() {
+            if (CONFIG.pingInterval) {
+                clearInterval(CONFIG.pingInterval);
+                CONFIG.pingInterval = null;
+            }
+        }
+
+        function updateStats() {
+            if (!CONFIG.streaming) return;
+            var elapsed = Math.floor((Date.now() - CONFIG.startTime) / 1000);
+            var m = Math.floor(elapsed / 60);
+            var s = elapsed % 60;
+            elements.hudTime.querySelector('.hud-value').textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+
+            if (elements.hudRes) {
+                elements.hudRes.style.display = 'inline-flex'; // flex for layout
+                elements.hudRes.querySelector('.hud-value').textContent = elements.streamVideo.videoWidth + 'x' + elements.streamVideo.videoHeight;
+            }
+
+            var fps = 0;
+            var decoded = 0;
+
+            if (elements.streamVideo.getVideoPlaybackQuality) {
+                decoded = elements.streamVideo.getVideoPlaybackQuality().totalVideoFrames;
+            } else if (elements.streamVideo.webkitDecodedFrameCount) {
+                decoded = elements.streamVideo.webkitDecodedFrameCount;
+            } else if (elements.streamVideo.mozDecodedFrameCount) {
+                decoded = elements.streamVideo.mozDecodedFrameCount;
+            }
+
+            if (decoded > 0 && CONFIG.lastDecodedFrames > 0) {
+                fps = decoded - CONFIG.lastDecodedFrames;
+            }
+            else {
+                var now = Date.now();
+                var vTime = elements.streamVideo.currentTime;
+                if (CONFIG.lastStatTime > 0) {
+                    var deltaT = (now - CONFIG.lastStatTime) / 1000;
+                    var deltaV = vTime - CONFIG.lastVideoTime;
+                    if (deltaT > 0) {
+                        var speed = deltaV / deltaT;
+                        if (speed > 0.1) {
+                            fps = Math.round(speed * CONFIG.targetFPS);
+                        }
+
+                        if (fps > CONFIG.targetFPS + 5) fps = CONFIG.targetFPS;
+                        if (fps < 0) fps = 0;
+                    }
+                }
+                CONFIG.lastVideoTime = vTime;
+                CONFIG.lastStatTime = now;
+            }
+
+            elements.hudFps.querySelector('.hud-value').textContent = fps;
+
+            var valEl = elements.hudFps.querySelector('.hud-value');
+            if (fps < 20) valEl.style.color = '#ef4444'; // red
+            else if (fps < (CONFIG.targetFPS * 0.7)) valEl.style.color = '#f59e0b'; // amber
+            else valEl.style.color = '#10b981'; // green
+
+            CONFIG.lastDecodedFrames = decoded;
+        }
+
+        function toggleFullscreen() {
+            var el = document.documentElement;
+            var isFs = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+
+            if (!isFs) {
+                if (el.requestFullscreen) el.requestFullscreen();
+                else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+                else if (el.msRequestFullscreen) el.msRequestFullscreen();
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+                else if (document.msExitFullscreen) document.msExitFullscreen();
+            }
+        }
+
+        function toggleStats() {
+            CONFIG.statsVisible = !CONFIG.statsVisible;
+            var hud = document.querySelector('.hud');
+            if (hud) {
+                if (CONFIG.statsVisible) {
+                    hud.classList.add('visible');
+                    showToast('Statystyki: Włączone', 'info');
+                } else {
+                    hud.classList.remove('visible');
+                    showToast('Statystyki: Wyłączone', 'info');
+                }
+            }
+        }
+
+        function updateStatus(text, isConnected) {
+            var badge = elements.statusBadge;
+            badge.className = 'status-badge';
+            badge.innerHTML = text;
+
+            if (text.indexOf('ŁĄCZENIE') !== -1) {
+                badge.classList.add('connecting');
+                badge.innerHTML = '<span class="spinner"></span> ' + text;
+            }
+            else if (isConnected) {
+                badge.classList.add('connected');
+                if (elements.displayAddress) {
+                    elements.displayAddress.textContent = 'ws://' + elements.ipInput.value + ':' + (elements.portInput.value || '8080');
+                }
+                document.body.classList.remove('setup-mode');
+                elements.connectBtn.classList.add('hidden');
+                elements.disconnectBtn.classList.remove('hidden');
+            } else {
+                badge.classList.add('error');
+
+                document.body.classList.add('setup-mode');
+                elements.connectBtn.classList.remove('hidden');
+                elements.disconnectBtn.classList.add('hidden');
+            }
+        }
+
+        function sendMessage(obj) {
+            if (CONFIG.ws && CONFIG.ws.readyState === 1) {
+                CONFIG.ws.send(JSON.stringify(obj));
+            }
+        }
+
+        function showToast(message, type) {
+            var existingToasts = document.querySelectorAll('.toast');
+            for (var i = 0; i < existingToasts.length; i++) {
+                if (existingToasts[i].parentNode) {
+                    existingToasts[i].parentNode.removeChild(existingToasts[i]);
+                }
+            }
+
+            var t = document.createElement('div');
+            t.className = 'toast';
+            if (type === 'success') t.className += ' toast-success';
+            if (type === 'error') t.className += ' toast-error';
+            t.innerHTML = message;
+            document.body.appendChild(t);
+            setTimeout(function () {
+                if (t.parentNode) { // check if still attached
+                    t.style.opacity = '0';
+                    t.style.transform = 'translate(-50%, 100px)';
+                    setTimeout(function () {
+                        if (t.parentNode) t.parentNode.removeChild(t);
+                    }, 500);
+                }
+            }, 3000);
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+
+</html>

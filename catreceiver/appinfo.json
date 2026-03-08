@@ -1,0 +1,22 @@
+{
+  "id": "com.mary.catcast",
+  "version": "1.0.0",
+  "vendor": "CatCast",
+  "type": "web",
+  "main": "index.html",
+  "title": "CatCast",
+  "icon": "assets/images/iconS.png",
+  "largeIcon": "assets/images/iconL.png",
+  "iconColor": "#FFFFFF",
+  "splashBackground": "assets/images/splashScreen.png",
+  "splashColor": "#FFFFFF",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true,
+  "requiredPermissions": [
+    "media",
+    "network.webosocket",
+    "media.controller",
+    "television",
+    "tv.audio"
+  ]
+}

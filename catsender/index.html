@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CastCast Sender</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+
+<body>
+
+    <div class="app-shell">
+        <!-- System Theme Early Inject -->
+        <script>
+            try {
+                if (window.electronAPI && window.electronAPI.getSettingsSync) {
+                    window.__initialSettings = window.electronAPI.getSettingsSync();
+                    if (window.__initialSettings && window.__initialSettings.theme === 'light') {
+                        document.body.classList.add('light-theme');
+                    }
+                }
+            } catch (e) { console.error("FOUC block error:", e); }
+        </script>
+
+        <header class="title-bar">
+            <div class="drag-region"></div>
+            <div class="app-title" data-i18n="app-title">CatCast Sender</div>
+            <div class="window-controls">
+                <button class="win-btn" id="minimize-btn"><i class="fas fa-minus"></i></button>
+                <button class="win-btn" id="maximize-btn"><i class="far fa-square"></i></button>
+                <button class="win-btn close" id="close-btn"><i class="fas fa-times"></i></button>
+            </div>
+        </header>
+
+        <!-- main layout row -->
+        <div class="layout-row">
+            <!-- sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-brand">
+                    <div class="brand-logo">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 6502.38 6502.38"
+                            style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd">
+                            <defs>
+                                <style type="text/css">
+                                    .fil0 {
+                                        fill: #FEFEFE
+                                    }
+
+                                    .fil1 {
+                                        fill: #1F1B20
+                                    }
+                                </style>
+                            </defs>
+                            <g>
+                                <circle class="fil0" cx="3251.2" cy="3251.2" r="3251.18" />
+                                <path class="fil1"
+                                    d="M1465.35 3424.52c0,-710.89 433.86,-1327.95 1155.2,-1602 0,0 54.83,-390.81 133.96,-507.43 0,0 49.86,77.43 91.03,138.96 49.09,73.36 114.06,113.16 114.06,113.16 155.42,-21.22 779.16,0.66 895.3,52.14 0,0 234.81,-163.61 285.74,-303.46 0,0 368.8,1305.15 -889.45,1322.76l0 348.51c1675.1,16.29 1369.62,-1880.8 996.4,-2004.62 -218.13,-72.36 -478.37,206.2 -478.37,206.2 -158.52,-37.03 -473.45,-22.56 -643.29,-22.56 0,0 -269.7,-324.99 -447.9,-282.14 -289.83,69.67 -381.99,673.61 -381.99,673.61 -727.68,347.81 -1206.13,1042.97 -1206.13,1903.31 0,1193.64 967.64,2161.28 2161.28,2161.28 1193.65,0 2161.28,-967.64 2161.28,-2161.28l-375.8 0c0,932.92 -799.19,1749.4 -1785.48,1749.4 -986.29,0 -1785.84,-799.54 -1785.84,-1785.84z" />
+                                <path class="fil1"
+                                    d="M4348.15 3460.96c0,605.83 -491.13,1096.96 -1096.96,1096.96l0 384.4c818.13,0 1481.36,-663.23 1481.36,-1481.36l-384.4 0z" />
+                                <path class="fil1"
+                                    d="M3251.19 4291.97c458.96,0 831.01,-372.06 831.01,-831.01l-405.21 0c0,235.16 -190.63,425.8 -425.8,425.8l0 405.21z" />
+                            </g>
+                        </svg>
+                    </div>
+                    <div class="brand-text">
+                        <h1>CatCast</h1>
+                        <span data-i18n="brand-subtitle">Sender</span>
+                    </div>
+                </div>
+
+                <div class="sidebar-status">
+                    <div class="status-badge" id="status-indicator">
+                        <div class="status-dot offline"></div>
+                        <span class="status-label" data-i18n="status-offline">Offline</span>
+                    </div>
+                </div>
+
+                <nav class="sidebar-menu">
+                    <a href="#" class="nav-item active" data-page="dashboard">
+                        <i class="fas fa-border-all"></i>
+                        <span data-i18n="nav-dashboard">Dashboard</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="source">
+                        <i class="fas fa-layer-group"></i>
+                        <span data-i18n="nav-source">Źródło</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="clients">
+                        <i class="fas fa-users"></i>
+                        <span data-i18n="nav-clients">Klienci</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="settings">
+                        <i class="fas fa-sliders"></i>
+                        <span data-i18n="nav-settings">Ustawienia</span>
+                    </a>
+                    <a href="#" class="nav-item" data-page="logs">
+                        <i class="fas fa-terminal"></i>
+                        <span data-i18n="nav-logs">Logi</span>
+                    </a>
+                </nav>
+
+                <div class="sidebar-footer">
+                    <div class="stream-summary" id="stream-summary">
+                        <div class="summary-content">
+                            <div class="summary-row">
+                                <i class="fas fa-desktop"></i>
+                                <span id="summary-source" data-i18n="lbl-source-default">Ekran 1</span>
+                            </div>
+                            <div class="summary-details">
+                                <span id="summary-res">1080p</span> &bull; <span id="summary-fps">30 FPS</span>
+                            </div>
+                        </div>
+                        <button id="sidebar-audio-btn" class="btn-icon-small" title="Dźwięk: Włączony">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                    </div>
+
+                    <div class="sidebar-actions">
+                        <button id="start-stream-btn" class="btn btn-primary btn-block">
+                            <i class="fas fa-play"></i> <span data-i18n="btn-start">Start</span>
+                        </button>
+                        <button id="stop-stream-btn" class="btn btn-danger btn-block" disabled>
+                            <i class="fas fa-stop"></i> <span data-i18n="btn-stop">Stop</span>
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- main content area -->
+            <main class="main-wrapper">
+                <div class="content-scroll">
+
+                    <section id="page-dashboard" class="page active">
+                        <header class="page-header">
+                            <h2 data-i18n="header-dashboard">Panel Sterowania</h2>
+                            <p data-i18n="desc-dashboard">Zarządzaj transmisją i statystykami</p>
+                        </header>
+
+                        <!-- stats grid -->
+                        <div class="stats-grid">
+                            <div class="stat-card interactive" id="clients-stat-card">
+                                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                                <div class="stat-info">
+                                    <span class="stat-label" data-i18n="stat-clients">Klienci</span>
+                                    <span class="stat-value" id="connected-clients">0</span>
+                                </div>
+                            </div>
+                            <div class="stat-card interactive" id="fps-stat-card">
+                                <div class="stat-icon"><i class="fas fa-film"></i></div>
+                                <div class="stat-info">
+                                    <span class="stat-label" data-i18n="stat-fps">FPS</span>
+                                    <span class="stat-value" id="current-fps">0</span>
+                                </div>
+                            </div>
+                            <div class="stat-card interactive" id="quality-stat-card">
+                                <div class="stat-icon"><i class="fas fa-wifi"></i></div>
+                                <div class="stat-info">
+                                    <span class="stat-label" data-i18n="stat-quality">Jakość</span>
+                                    <span class="stat-value" id="current-quality">-</span>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                                <div class="stat-info">
+                                    <span class="stat-label" data-i18n="stat-time">Czas</span>
+                                    <span class="stat-value" id="stream-time">00:00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-split">
+                            <!-- server info -->
+                            <div class="card info-card">
+                                <div class="card-header">
+                                    <h3><i class="fas fa-server"></i> <span data-i18n="card-server">Serwer</span></h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="info-row">
+                                        <span data-i18n="lbl-status">Status</span>
+                                        <span id="server-status" class="status-text"
+                                            data-i18n="status-inactive">Nieaktywny</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span data-i18n="lbl-ip">IP Lokalny</span>
+                                        <span id="server-ip" class="mono">...</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span data-i18n="lbl-tv-addr">Adres TV</span>
+                                        <span id="tv-address" class="mono">...</span>
+                                    </div>
+                                    <div class="quick-actions">
+                                        <button id="copy-address-btn" class="btn btn-sm btn-outline"><i
+                                                class="fas fa-copy"></i>
+                                            <span data-i18n="btn-copy">Kopiuj</span></button>
+                                        <button id="test-connection-btn" class="btn btn-sm btn-outline"><i
+                                                class="fas fa-plug"></i> <span data-i18n="btn-test">Test</span></button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- preview -->
+                            <div class="card preview-card">
+                                <div class="card-header"
+                                    style="justify-content: space-between; display: flex; align-items: center;">
+                                    <h3><i class="fas fa-video"></i> <span data-i18n="card-preview">Podgląd</span></h3>
+                                    <button id="toggle-preview-btn" class="btn-icon-only" title="Pokaż/Ukryj podgląd"
+                                        data-i18n-title="title-toggle-preview"><i class="fas fa-eye fa-lg"></i></button>
+                                </div>
+                                <div class="card-body preview-body">
+                                    <div id="preview-hidden-message" class="placeholder-content hidden">
+                                        <i class="fas fa-eye-slash"></i>
+                                        <span data-i18n="msg-preview-hidden">Podgląd wyłączony</span>
+                                    </div>
+                                    <div id="preview-content-wrapper"
+                                        style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                                        <div id="preview-placeholder" class="placeholder-content">
+                                            <i class="fas fa-video-slash"></i>
+                                            <span data-i18n="preview-no-signal">Brak sygnału</span>
+                                        </div>
+                                        <img id="stream-preview" class="hidden" alt="Live Preview">
+
+                                        <!-- custom video player container -->
+                                        <div id="file-stream-container" class="video-wrapper hidden"
+                                            style="position: relative; width: 100%; height: 100%;">
+                                            <video id="file-stream-preview" muted autoplay playsinline
+                                                style="width: 100%; height: 100%; object-fit: contain; outline: none;"></video>
+
+                                            <!-- custom controls overlay -->
+                                            <div class="custom-video-controls" id="custom-video-controls">
+                                                <button id="custom-play-pause-btn" class="ctrl-btn"><i
+                                                        class="fas fa-play"></i></button>
+                                                <button id="custom-mute-btn" class="ctrl-btn"><i
+                                                        class="fas fa-volume-mute"></i></button>
+                                                <input type="range" id="custom-progress-slider" class="ctrl-slider"
+                                                    min="0" max="100" value="0" step="any">
+                                                <span id="custom-time-display" class="ctrl-time">00:00 / 00:00</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                    </section>
+
+                    <!-- source page -->
+                    <section id="page-source" class="page">
+                        <header class="page-header">
+                            <h2 data-i18n="header-source">Źródło Sygnału</h2>
+                            <p data-i18n="desc-source">Wybierz co chcesz transmitować</p>
+                        </header>
+
+                        <div class="source-grid">
+                            <div class="source-option active" data-source="screen">
+                                <i class="fas fa-desktop"></i>
+                                <span data-i18n="src-screen">Cały Ekran</span>
+                            </div>
+                            <div class="source-option" data-source="window">
+                                <i class="fas fa-window-maximize"></i>
+                                <span data-i18n="src-window">Okno Aplikacji</span>
+                            </div>
+                            <div class="source-option" data-source="file">
+                                <i class="fas fa-file-video"></i>
+                                <span data-i18n="src-file">Plik Wideo</span>
+                            </div>
+                        </div>
+
+                        <div class="source-details-panel">
+                            <!-- screen details -->
+                            <div class="source-detail active" id="detail-screen">
+                                <h3 data-i18n="dtl-screens">Dostępne Ekrany</h3>
+                                <div class="grid-list" id="monitors-list"></div>
+                            </div>
+
+                            <!-- window details -->
+                            <div class="source-detail" id="detail-window">
+                                <div class="panel-header">
+                                    <h3>
+                                        <span data-i18n="dtl-windows">Dostępne Okna</span>
+                                        <i class="fas fa-info-circle info-icon-tooltip"
+                                            title="Niektóre okna mogą nie być transmitowane poprawnie. Dla najlepszych rezultatów zalecamy udostępnianie całego ekranu."
+                                            data-i18n-tooltip="tooltip-window-warning"></i>
+                                    </h3>
+                                    <button id="refresh-windows-btn" class="btn btn-sm btn-ghost"><i
+                                            class="fas fa-sync"></i>
+                                        <span data-i18n="btn-refresh">Odśwież</span></button>
+                                </div>
+                                <div class="grid-list small-grid" id="windows-list"></div>
+                            </div>
+
+                            <!-- file details -->
+                            <div class="source-detail" id="detail-file">
+                                <h3 data-i18n="dtl-file">Wybór Pliku</h3>
+                                <div class="file-drop-area">
+                                    <button id="browse-file-btn" class="btn btn-secondary"><i
+                                            class="fas fa-folder-open"></i>
+                                        <span data-i18n="btn-select-file">Wybierz
+                                            plik...</span></button>
+                                    <span id="selected-file-info" data-i18n="lbl-no-file">Nie wybrano pliku</span>
+                                </div>
+                                <div id="file-preview"></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- clients page -->
+                    <section id="page-clients" class="page">
+                        <header class="page-header">
+                            <h2 data-i18n="header-clients">Klienci</h2>
+                            <div class="header-actions">
+                                <button id="refresh-clients-btn" class="btn btn-sm btn-ghost"><i
+                                        class="fas fa-sync"></i></button>
+                                <span class="badge" id="clients-count">0</span>
+                            </div>
+                        </header>
+
+                        <div class="card table-card">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>IP</th>
+                                        <th data-i18n="col-device">Urządzenie</th>
+                                        <th data-i18n="col-status">Status</th>
+                                        <th data-i18n="col-actions" style="text-align: right;">Akcje</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clients-table-body">
+                                    <tr class="empty-row">
+                                        <td colspan="5" data-i18n="clients-empty">Brak połączonych klientów</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- settings page -->
+                    <section id="page-settings" class="page">
+                        <header class="page-header">
+                            <h2 data-i18n="header-settings">Ustawienia</h2>
+                            <p data-i18n="desc-settings">Konfiguracja serwera i aplikacji</p>
+                        </header>
+
+                        <div class="settings-form">
+                            <div class="form-section">
+                                <h3 data-i18n="hdr-transmission">Transmisja</h3>
+                                <div class="form-group">
+                                    <label data-i18n="lbl-quality">Jakość Obrazu</label>
+                                    <select id="quality-select" class="form-control">
+                                        <option value="low" data-i18n="opt-low">Niska (Wydajność)</option>
+                                        <option value="medium" selected data-i18n="opt-medium">Średnia (Zalecane)
+                                        </option>
+                                        <option value="high" data-i18n="opt-high">Wysoka</option>
+                                        <option value="ultra" data-i18n="opt-ultra">Ultra (Jakość)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label data-i18n="lbl-fps">Płynność (FPS)</label>
+                                    <select id="fps-select" class="form-control">
+                                        <option value="15">15 FPS</option>
+                                        <option value="30" selected>30 FPS</option>
+                                        <option value="60">60 FPS</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label data-i18n="lbl-port">Port Serwera</label>
+                                    <input type="number" id="port-input" class="form-control" value="8080">
+                                </div>
+                                <div class="form-group">
+                                    <label data-i18n="lbl-sound">Dźwięk</label>
+                                    <div class="sound-control-row">
+                                        <div class="toggle-switch-icons" id="audio-toggle-switch">
+                                            <div class="toggle-track">
+                                                <i class="fas fa-volume-mute"></i>
+                                                <i class="fas fa-volume-up"></i>
+                                            </div>
+                                            <div class="toggle-knob"></div>
+                                        </div>
+
+                                        <div class="volume-slider-container" id="volume-container">
+                                            <input type="range" id="volume-slider" min="0" max="100" value="100"
+                                                class="volume-range">
+                                            <span id="volume-value">100%</span>
+                                        </div>
+                                        <input type="checkbox" id="audio-checkbox" checked style="display:none;">
+                                    </div>
+
+                                    <select id="audio-mode-select" class="form-control"
+                                        style="display: none; margin-top: 8px;">
+                                        <option value="tv" data-i18n="opt-tv-speakers">Głośniki TV</option>
+                                        <option value="local" data-i18n="opt-ext-device">Urządzenie zewnętrzne</option>
+                                    </select>
+
+                                    <div id="audio-output-group" style="display: none; margin-top: 8px;"
+                                        class="sound-control-panel">
+                                        <label
+                                            style="font-size: 0.85em; color: var(--text-muted); margin-bottom: 4px; display: block;"
+                                            data-i18n="lbl-output-device">Urządzenie
+                                            wyjściowe (Zewnętrzne)</label>
+                                        <select id="audio-output-select" class="form-control">
+                                            <option value="default" data-i18n="opt-default">Domyślne</option>
+                                        </select>
+
+                                        <!-- audio sync delay slider -->
+                                        <div class="sync-delay-container">
+                                            <label
+                                                style="font-size: 0.85em; color: var(--text-muted); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                                <span><i class="fas fa-history"></i> <span
+                                                        data-i18n="lbl-sync-delay">Opóźnienie
+                                                        synchronizacji</span></span>
+                                                <span id="audio-delay-value"
+                                                    style="color: #2196F3; font-weight: 600; font-size: 0.9em;">5.0s</span>
+                                            </label>
+                                            <input type="range" id="audio-delay-slider" min="0" max="15" step="0.1"
+                                                value="5.0" class="styled-slider">
+                                            <div style="font-size: 0.75em; color: var(--text-muted); margin-top: 6px; text-align: center; opacity: 0.8;"
+                                                data-i18n="desc-sync-delay">
+                                                Dostosuj, jeśli dźwięk nie pasuje do obrazu TV
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div id="audio-capture-group" style="display: none; margin-top: 8px;">
+                                        <label
+                                            style="font-size: 0.85em; color: var(--text-muted); margin-bottom: 4px; display: block;"
+                                            data-i18n="lbl-capture-device">Urządzenie
+                                            przechwytywania (System)</label>
+                                        <select id="audio-capture-select" class="form-control">
+                                            <option value="default" data-i18n="opt-default-system">Domyślne Systemowe
+                                            </option>
+                                        </select>
+                                        <div style="font-size: 0.75rem; color: #E9D502; margin-top: 4px;">
+                                            <i class="fas fa-info-circle"></i> <span data-i18n="warn-capture-default">To
+                                                urządzenie zostanie ustawione jako
+                                                domyślne na czas streamu.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <h3 data-i18n="hdr-app">Aplikacja</h3>
+
+                                <div class="form-group">
+                                    <label data-i18n="lbl-lang">Język / Language</label>
+                                    <select id="lang-select" class="form-control">
+                                        <option value="pl">Polski</option>
+                                        <option value="en">English</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label data-i18n="lbl-theme">Motyw</label>
+                                    <div class="toggle-switch" id="theme-toggle">
+                                        <div class="toggle-track">
+                                            <i class="fas fa-moon"></i>
+                                            <i class="fas fa-sun"></i>
+                                        </div>
+                                        <div class="toggle-knob"></div>
+                                    </div>
+                                </div>
+
+                                <label class="checkbox-wrapper">
+                                    <input type="checkbox" id="auto-start-checkbox">
+                                    <span data-i18n="chk-autostart">Uruchom przy starcie systemu</span>
+                                </label>
+                                <label class="checkbox-wrapper">
+                                    <input type="checkbox" id="minimize-to-tray-checkbox" checked>
+                                    <span data-i18n="chk-tray">Minimalizuj do zasobnika</span>
+                                </label>
+                                <label class="checkbox-wrapper">
+                                    <input type="checkbox" id="start-minimized-checkbox">
+                                    <span data-i18n="chk-minimized">Uruchom zminimalizowane</span>
+                                </label>
+
+                                <div class="app-version-info"
+                                    style="margin-top: 16px; font-size: 12px; color: var(--text-muted);">
+                                    <span data-i18n="lbl-version">Wersja aplikacji:</span> <span
+                                        class="mono">1.0.0</span>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button id="reset-settings-btn" class="btn btn-ghost" data-i18n="btn-defaults">Przywróć
+                                    domyślne</button>
+                                <button id="save-settings-btn" class="btn btn-primary" data-i18n="btn-save">Zapisz
+                                    zmiany</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- logs page -->
+                    <section id="page-logs" class="page">
+                        <header class="page-header">
+                            <h2 data-i18n="header-logs">Logi Systemowe</h2>
+                            <div class="header-actions">
+                                <select id="log-level-select" class="form-control compact">
+                                    <option value="all" data-i18n="opt-log-all">Wszystkie</option>
+                                    <option value="info" data-i18n="opt-log-info">Info</option>
+                                    <option value="warn" data-i18n="opt-log-warn">Warn</option>
+                                    <option value="error" data-i18n="opt-log-error">Error</option>
+                                </select>
+                                <button id="export-logs-btn" class="btn btn-sm btn-outline" title="Eksportuj logi"
+                                    data-i18n-tooltip="btn-export-logs"><i class="fas fa-download"></i></button>
+                                <button id="clear-logs-btn" class="btn btn-sm btn-ghost" title="Wyczyść logi"
+                                    data-i18n-tooltip="btn-clear-logs"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </header>
+
+                        <div class="terminal-view">
+                            <div class="terminal-content" id="logs-content">
+                                <!-- logs go here -->
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+            </main>
+        </div>
+
+        <div id="toast-container"></div>
+
+        <div class="modal-overlay" id="qr-modal">
+            <div class="modal-window wide-modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-tv"></i> <span data-i18n="hdr-qr">Połącz z TV</span></h3>
+                    <button class="modal-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div id="qr-content">
+                    </div>
+                    <div style="margin-top: 8px; margin-bottom: 4px; text-align: left; padding-left: 0;">
+                        <label class="checkbox-wrapper"
+                            style="display: inline-flex; align-items: center; justify-content: flex-start; gap: 8px;">
+                            <input type="checkbox" id="dont-show-qr-checkbox">
+                            <span data-i18n="chk-dont-show-again" style="font-size: 13px;">Nie pokazuj ponownie</span>
+                        </label>
+                    </div>
+                    <div class="modal-actions-full">
+                        <button id="copy-url-btn" class="btn btn-primary btn-block">
+                            <i class="fas fa-copy"></i> <span data-i18n="btn-copy">Kopiuj URL</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- confirmation modal -->
+        <div class="modal-overlay" id="confirm-modal">
+            <div class="modal-window">
+                <div class="modal-header">
+                    <h3 id="confirm-title">Potwierdzenie</h3>
+                    <button class="modal-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body confirm-layout">
+                    <div class="modal-icon"><i class="fas fa-question"></i></div>
+                    <div class="modal-text">
+                        <p id="confirm-message">Czy na pewno...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-ghost modal-close" data-i18n="btn-cancel">Anuluj</button>
+                    <button id="confirm-action-btn" class="btn btn-primary" data-i18n="btn-confirm">Potwierdź</button>
+                </div>
+            </div>
+        </div>
+
+        <script src="assets/js/state.js"></script>
+        <script src="assets/js/locales.js"></script>
+        <script src="assets/js/ui-core.js"></script>
+        <script src="assets/js/settings-manager.js"></script>
+        <script src="assets/js/sources-manager.js"></script>
+        <script src="assets/js/audio-sync.js"></script>
+        <script src="assets/js/streaming-manager.js"></script>
+        <script src="renderer.js"></script>
+</body>
+
+</html>

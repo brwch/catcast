@@ -20,7 +20,8 @@
 As long as the PC and TV share the same network (wired or wireless), CatCast captures the desktop, encodes it with FFmpeg, and delivers the stream directly to the TV client. This makes it work in situations where conventional casting typically fails: desktop PCs on Ethernet, systems without Miracast-capable adapters, or TVs with no built-in wireless display support.
 
 <div align="center">
-<img width="1260" height="744" alt="CatCast Sender UI" src="https://github.com/user-attachments/assets/10d83a6c-2739-437b-ac7a-579f9017c081" />
+  
+![recording](https://github.com/user-attachments/assets/955ab3bc-a849-4f41-8d4b-5f5ab9692d74)
 <br/>
 <em>Desktop sender interface</em>
 
@@ -129,3 +130,4 @@ CatCast is stable and meets its core goals: full desktop streaming to an LG TV o
 ---
 
 Built as a personal project to solve a real casting problem - exploring low-level audio/video streaming, Electron desktop development, and webOS application deployment.
+
